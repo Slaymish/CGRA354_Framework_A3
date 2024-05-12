@@ -30,6 +30,10 @@ private:
   bool m_show_axis = false;
   bool m_show_skymap = false;
 
+  // Bounce/wrap
+  bool m_bounce = false;
+  bool m_wrap = false;
+
   // Boid Weights
   float m_avoidance_weight = 0.0f;
   float m_cohesion_weight = 0.0f;
@@ -84,4 +88,6 @@ public:
   float maxSpeed() const { return m_max_speed; }
   float boidRadius() const { return m_boid_radius; }
   float softBound() const { return m_soft_bound; }
+  bool bounce() const { return m_bounce; }
+  bool wrap() const { return m_wrap; }
 };
