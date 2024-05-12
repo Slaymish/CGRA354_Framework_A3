@@ -271,8 +271,10 @@ void Scene::renderGUI() {
   ImGui::SliderFloat("Alignment Weight", &m_alignment_weight, 0, 1.0, "%.2f");
 
   ImGui::SliderFloat("Min Speed", &m_min_speed, 0, 10.0, "%.0f");
-  ImGui::SliderFloat("Max Speed", &m_max_speed, 0, 10.0, "%.0f");
+  ImGui::SliderFloat("Max Speed", &m_max_speed, 1, 10.0, "%.0f");
 
-  ImGui::SliderFloat("Boid Neighbour Radius", &m_boid_radius, 0, 100.0, "%.2f");
-  ImGui::SliderFloat("Soft Bound", &m_soft_bound, 0, 100.0, "%.0f");
+  ImGui::SliderFloat("Boid Neighbour Radius", &m_boid_radius, 0, 10.0, "%.2f");
+  ImGui::SliderFloat("Soft Bound", &m_soft_bound, 0, 10.0, "%.2f");
+  ImGui::Checkbox("Bounce", &m_bounce);
+  ImGui::Checkbox("Wrap", &m_wrap);
 }
