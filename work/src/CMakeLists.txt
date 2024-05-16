@@ -22,6 +22,7 @@ SET(sources
 	"opengl.hpp"
 
 	"obstacle.hpp"
+	"obstacle.cpp"
 )
 
 # Add executable target and link libraries

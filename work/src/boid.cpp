@@ -126,6 +126,18 @@ void Boid::calculateForces(Scene *scene) {
     }
   }
 
+  // Obstacle Avoidance
+  glm::vec3 obstacle_avoidance = glm::vec3(0);
+  for (const Obstacle &obstacle : scene->obstacles()) {
+    obstacle_avoidance += obstacle.avoid(*this);
+  }
+
+  if (glm::length(obstacle_avoidance) > 0) {
+    obstacle_avoidance =
+        glm::normalize(obstacle_avoidance) * scene->avoidanceWeight();
+    m_acceleration += obstacle_avoidance;
+  }
+
   // Soft Bound
   glm::vec3 bound = scene->bound();
   float soft_bound = scene->softBound();

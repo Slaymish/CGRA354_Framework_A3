@@ -14,6 +14,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 // project
+
 #include "boid.hpp"
 #include "cgra/cgra_geometry.hpp"
 #include "cgra/cgra_image.hpp"
@@ -84,6 +85,7 @@ void Scene::loadCore() {
 
   // CLear all related data
   m_boids.clear();
+  m_obstacles.clear();
 
   for (int i = 0; i <= m_num_boids; i++) {
     m_boids.push_back(
@@ -100,6 +102,7 @@ void Scene::loadCompletion() {
   //-------------------------------------------------------------
 
   m_boids.clear();
+  m_obstacles.clear();
 
   for (int i = 0; i < m_num_flocks; i++) {
     for (int j = 0; j < m_num_boids_per_flock; j++) {
@@ -124,14 +127,17 @@ void Scene::loadChallenge() {
 
   // YOUR CODE GOES HERE
 
-  m_obstacles.push_back(Obstacle(glm::vec3(0, 0, 0), 5));
-  m_obstacles.push_back(Obstacle(glm::vec3(0, 0, 20), 5));
-
   m_boids.clear();
+  m_obstacles.clear();
 
   for (int i = 0; i <= m_num_boids; i++) {
     m_boids.push_back(
         Boid(linearRand(-m_bound_hsize, m_bound_hsize), sphericalRand(1.0), 0));
+  }
+
+  for (int i = 0; i < m_num_obstacles; i++) {
+    m_obstacles.push_back(
+        Obstacle(linearRand(-m_bound_hsize, m_bound_hsize), m_obstacle_radius));
   }
 }
 
@@ -253,7 +259,7 @@ void Scene::draw(const mat4 &proj, const mat4 &view) {
 void Scene::drawObstacles(const mat4 &proj, const mat4 &view) {
   for (const Obstacle &o : m_obstacles) {
     mat4 model(1);
-    model = translate(mat4(1), o.position()) * model;
+    model = translate(mat4(1), o.position()) * scale(mat4(1), vec3(o.radius()));
     mat4 modelview = view * model;
 
     glUseProgram(m_color_shader);
@@ -343,4 +349,7 @@ void Scene::renderGUI() {
 
   ImGui::Separator();
   ImGui::Text("Challenge");
+
+  ImGui::SliderInt("Number of Obstacles", &m_num_obstacles, 0, 10);
+  ImGui::SliderFloat("Obstacle Radius", &m_obstacle_radius, 0, 10.0, "%.2f");
 }

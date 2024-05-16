@@ -58,6 +58,10 @@ private:
   std::vector<Boid> m_boids;
   std::vector<Obstacle> m_obstacles;
 
+  // obstacle data
+  int m_num_obstacles = 10;
+  float m_obstacle_radius = 2.0f;
+
   //-------------------------------------------------------------
   // [Assignment 3] :
   // Create variables for keeping track of the boid parameters
@@ -105,6 +109,8 @@ public:
   float predatorChaseWeight() const { return m_predator_chase_weight; }
   bool bounce() const { return m_bounce; }
   bool wrap() const { return m_wrap; }
+  // In scene.hpp, add the drawObstacles declaration:
+  void drawObstacles(const glm::mat4 &proj, const glm::mat4 &view);
 };
 
 #endif // SCENE_HPP
