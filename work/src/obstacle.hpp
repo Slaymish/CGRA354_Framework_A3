@@ -17,7 +17,7 @@ public:
   float radius() const { return m_radius; }
 
   bool isColliding(const Boid &boid) const;
-  glm::vec3 avoid(const Boid &boid) const;
+  glm::vec3 avoid(const Boid &boid, float neighbourRadius) const;
 };
 
 #endif // OBSTACLE_HPP
