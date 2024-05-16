@@ -10,7 +10,26 @@
 using namespace glm;
 using namespace std;
 
-vec3 Boid::color() const { return vec3(0, 1, 0); }
+vec3 Boid::color() const {
+  // use m_num_flocks to determine the number of colors
+  // use flockID to determine the color of the boid
+  // -1 is predator (red)
+  // return the color as a vec3
+
+  std::vector<vec3> colors = {
+      vec3(0, 1, 0), // green
+      vec3(0, 0, 1), // blue
+      vec3(1, 1, 0), // yellow
+      vec3(1, 0, 1), // magenta
+      vec3(0, 1, 1), // cyan
+  };
+
+  if (flockID == -1) {
+    return vec3(1, 0, 0); // red
+  }
+
+  return colors[flockID % colors.size()];
+}
 
 void Boid::calculateForces(Scene *scene) {
   //-------------------------------------------------------------
@@ -31,55 +50,80 @@ void Boid::calculateForces(Scene *scene) {
   //  - Obstacle avoidance
   //-------------------------------------------------------------
 
-  // YOUR CODE GOES HERE
-  // ...
+  if (isPredator()) {
+    glm::vec3 chase_force = glm::vec3(0);
+    int prey_count = 0;
 
-  // Alignment
-
-  // average_velocity = 0
-  // foreach other boid in boids:
-  //  average_velocity += other_boid.velocity
-
-  // average_velocity /= neighbours
-  // alignment = average_neighbour_position - boid.position
-
-  // Alignment
-
-  glm::vec3 average_velocity = glm::vec3(0);
-  glm::vec3 average_position = glm::vec3(0);
-  glm::vec3 avoidance = glm::vec3(0);
-  int neighbours = 0;
-
-  for (const Boid &other : scene->boids()) {
-    if (&other != this && glm::distance(other.position(), this->position()) <
-                              scene->boidRadius()) {
-      average_velocity += glm::normalize(other.velocity()); // for alignment
-      average_position += other.position();                 // for cohesion
-      avoidance += (this->position() - other.position()) /
-                   glm::distance(other.position(), this->position());
-      neighbours++;
+    for (const Boid &other : scene->boids()) {
+      if (!other.isPredator() &&
+          glm::distance(other.position(), this->position()) <
+              scene->boidRadius()) {
+        chase_force += (other.position() - this->position()) /
+                       glm::distance(other.position(), this->position());
+        prey_count++;
+      }
     }
-  }
 
-  if (neighbours > 0) {
-    average_velocity /= neighbours;
-    average_position /= neighbours;
+    if (prey_count > 0) {
+      chase_force /= prey_count;
+      chase_force = glm::normalize(chase_force) * scene->predatorChaseWeight();
+      m_acceleration = chase_force;
+    } else {
+      m_acceleration = glm::vec3(0); // No prey nearby, no acceleration
+    }
+  } else {
+    glm::vec3 average_velocity = glm::vec3(0);
+    glm::vec3 average_position = glm::vec3(0);
+    glm::vec3 avoidance = glm::vec3(0);
+    glm::vec3 predator_avoidance = glm::vec3(0);
+    int neighbours = 0;
+    bool predatorNearby = false;
 
-    // Alignment
-    glm::vec3 alignment = (average_velocity - m_velocity);
+    for (const Boid &other : scene->boids()) {
+      float distance = glm::distance(other.position(), this->position());
+      if (&other != this && distance < scene->boidRadius()) {
+        if (other.isPredator()) {
+          predatorNearby = true;
+          predator_avoidance +=
+              (this->position() - other.position()) / distance;
+        } else if (other.flockID == this->flockID) {
+          average_velocity += other.velocity(); // for alignment
+          average_position += other.position(); // for cohesion
+          avoidance +=
+              (this->position() - other.position()) / distance; // for avoidance
+          neighbours++;
+        }
+      }
+    }
 
-    alignment = glm::normalize(alignment) * scene->alignmentWeight();
+    if (neighbours > 0) {
+      average_velocity /= neighbours;
+      average_position /= neighbours;
 
-    // Cohesion
-    glm::vec3 cohesion = (average_position - this->position());
+      // Alignment
+      glm::vec3 alignment = average_velocity - m_velocity;
+      alignment = glm::normalize(alignment) * scene->alignmentWeight();
 
-    cohesion = glm::normalize(cohesion) * scene->cohesionWeight();
+      // Cohesion
+      glm::vec3 cohesion = average_position - this->position();
+      cohesion = glm::normalize(cohesion) * scene->cohesionWeight();
 
-    // Avoidance
-    glm::vec3 avoidanceForce =
-        glm::normalize(avoidance) * scene->avoidanceWeight();
+      // Avoidance
+      glm::vec3 avoidanceForce =
+          glm::normalize(avoidance) * scene->avoidanceWeight();
 
-    m_acceleration += alignment + cohesion + avoidanceForce;
+      m_acceleration =
+          alignment + cohesion + avoidanceForce; // update acceleration
+    } else {
+      m_acceleration = glm::vec3(0); // No neighbours, no acceleration
+    }
+
+    // Predator Avoidance
+    if (predatorNearby) {
+      predator_avoidance =
+          glm::normalize(predator_avoidance) * scene->predatorAvoidanceWeight();
+      m_acceleration += predator_avoidance;
+    }
   }
 
   // Soft Bound
@@ -100,10 +144,15 @@ void Boid::calculateForces(Scene *scene) {
   if (m_position.z > bound.z - soft_bound)
     soft_bound_force.z = (bound.z - soft_bound - m_position.z);
 
-  soft_bound_force = glm::normalize(soft_bound_force) * 0.1f;
+  if (glm::length(soft_bound_force) > 0) {
+    soft_bound_force =
+        glm::normalize(soft_bound_force) * scene->softBoundWeight();
 
-  if (glm::length(soft_bound_force) > 0)
+    soft_bound_force *=
+        glm::clamp(glm::distance(m_position, glm::vec3(0)), 1.0f, 5.0f);
+
     m_acceleration += soft_bound_force;
+  }
 }
 
 void Boid::update(float timestep, Scene *scene) {
@@ -116,55 +165,44 @@ void Boid::update(float timestep, Scene *scene) {
   // change the position (if wrapping).
   //-------------------------------------------------------------
 
+  // Update velocity with acceleration
+  m_velocity += m_acceleration * timestep;
+
   // Limit speed
-  if (glm::length(m_velocity) > scene->maxSpeed()) {
+  float speed = glm::length(m_velocity);
+  if (speed > scene->maxSpeed()) {
     m_velocity = glm::normalize(m_velocity) * scene->maxSpeed();
-  } else if (glm::length(m_velocity) < scene->minSpeed()) {
+  } else if (speed < scene->minSpeed()) {
     m_velocity = glm::normalize(m_velocity) * scene->minSpeed();
   }
 
-  // update velocity
-  m_velocity += m_acceleration * timestep;
-
-  // update position
+  // Update position
   m_position += m_velocity * timestep;
 
   // Bounce at the walls
-  bool bounce = scene->bounce();
-  if (bounce) {
-    glm::vec3 bound = scene->bound(); // half-size of the bounding box
-    if (m_position.x < -bound.x || m_position.x > bound.x) {
+  glm::vec3 bound = scene->bound(); // half-size of the bounding box
+  if (scene->bounce()) {
+    if (m_position.x < -bound.x || m_position.x > bound.x)
       m_velocity.x *= -1;
-    }
-    if (m_position.y < -bound.y || m_position.y > bound.y) {
+    if (m_position.y < -bound.y || m_position.y > bound.y)
       m_velocity.y *= -1;
-    }
-    if (m_position.z < -bound.z || m_position.z > bound.z) {
+    if (m_position.z < -bound.z || m_position.z > bound.z)
       m_velocity.z *= -1;
-    }
   }
 
   // Wrap around the walls
-  bool wrap = scene->wrap();
-  if (wrap) {
-    glm::vec3 bound = scene->bound();
-    if (m_position.x < -bound.x) {
+  if (scene->wrap()) {
+    if (m_position.x < -bound.x)
       m_position.x = bound.x;
-    }
-    if (m_position.x > bound.x) {
+    if (m_position.x > bound.x)
       m_position.x = -bound.x;
-    }
-    if (m_position.y < -bound.y) {
+    if (m_position.y < -bound.y)
       m_position.y = bound.y;
-    }
-    if (m_position.y > bound.y) {
+    if (m_position.y > bound.y)
       m_position.y = -bound.y;
-    }
-    if (m_position.z < -bound.z) {
+    if (m_position.z < -bound.z)
       m_position.z = bound.z;
-    }
-    if (m_position.z > bound.z) {
+    if (m_position.z > bound.z)
       m_position.z = -bound.z;
-    }
   }
 }
