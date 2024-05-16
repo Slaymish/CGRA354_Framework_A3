@@ -89,7 +89,8 @@ void Scene::loadCore() {
 
   for (int i = 0; i <= m_num_boids; i++) {
     m_boids.push_back(
-        Boid(linearRand(-m_bound_hsize, m_bound_hsize), sphericalRand(1.0), 0));
+        Boid(linearRand(-m_bound_hsize * 0.9f, m_bound_hsize * 0.9f),
+             sphericalRand(1.0), 0));
   }
 }
 
@@ -106,14 +107,16 @@ void Scene::loadCompletion() {
 
   for (int i = 0; i < m_num_flocks; i++) {
     for (int j = 0; j < m_num_boids_per_flock; j++) {
-      m_boids.push_back(Boid(linearRand(-m_bound_hsize, m_bound_hsize),
-                             sphericalRand(1.0), i));
+      m_boids.push_back(
+          Boid(linearRand(-m_bound_hsize * 0.9f, m_bound_hsize * 0.9f),
+               sphericalRand(1.0), i));
     }
   }
 
   for (int i = 0; i < m_num_predators; i++) {
-    m_boids.push_back(Boid(linearRand(-m_bound_hsize, m_bound_hsize),
-                           sphericalRand(1.0), -1));
+    m_boids.push_back(
+        Boid(linearRand(-m_bound_hsize * 0.9f, m_bound_hsize * 0.9f),
+             sphericalRand(1.0), -1));
   }
 }
 
@@ -132,12 +135,15 @@ void Scene::loadChallenge() {
 
   for (int i = 0; i <= m_num_boids; i++) {
     m_boids.push_back(
-        Boid(linearRand(-m_bound_hsize, m_bound_hsize), sphericalRand(1.0), 0));
+        Boid(linearRand(-m_bound_hsize * 0.9f, m_bound_hsize * 0.9f),
+             sphericalRand(1.0), 0));
   }
 
   for (int i = 0; i < m_num_obstacles; i++) {
-    m_obstacles.push_back(
-        Obstacle(linearRand(-m_bound_hsize, m_bound_hsize), m_obstacle_radius));
+    vec3 center = vec3(0.0f); // Center of the box
+    vec3 position =
+        center + linearRand(-m_bound_hsize * 0.8f, m_bound_hsize * 0.8f);
+    m_obstacles.push_back(Obstacle(position, m_obstacle_radius));
   }
 }
 
@@ -270,11 +276,18 @@ void Scene::drawObstacles(const mat4 &proj, const mat4 &view) {
     glUniformMatrix4fv(glGetUniformLocation(m_color_shader, "uModelViewMatrix"),
                        1, false, value_ptr(modelview));
 
+    // Set the color to red
+    glUniform3fv(glGetUniformLocation(m_color_shader, "uColor"), 1,
+                 value_ptr(vec3(1.0, 0.0, 0.0)));
+
     m_sphere_mesh.draw();
   }
 }
 
 void Scene::renderGUI() {
+
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing,
+                      ImVec2(10, 10)); // Add spacing between items
 
   if (ImGui::Button("Core", ImVec2(80, 0))) {
     loadCore();
@@ -292,64 +305,77 @@ void Scene::renderGUI() {
   ImGui::Checkbox("Draw Axis", &m_show_axis);
   ImGui::Checkbox("Draw Skybox", &m_show_skymap);
 
-  //-------------------------------------------------------------
-  // [Assignment 3] :
-  // Add ImGui sliders for controlling boid parameters :
-  // Core :
-  // - boid min speed
-  // - boid max speed
-  // - boid max acceleration
-  // - boid neighbourhood size
-  // - boid cohesion weight
-  // - boid alignment weight
-  // - boid avoidance weight
-  // - bounding mode (optional)
-  // Completion :
-  // - boid anti-predator weight
-  // - predator min speed
-  // - predator max speed
-  // - predator max acceleration
-  // - predator neighbourhood size
-  // - predator avoidance weight
-  // - predator chase weight
-  //-------------------------------------------------------------
-
-  ImGui::SliderFloat3("Bound hsize", value_ptr(m_bound_hsize), 0, 100.0,
-                      "%.0f");
+  ImGui::Separator();
 
   ImGui::Text("Core");
+  ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(2, 2));
 
-  ImGui::SliderInt("Number of Boids", &m_num_boids, 0, 300);
+  // General settings
+  ImGui::Text("Avoidance Weight");
+  ImGui::SliderFloat("##Avoidance Weight", &m_avoidance_weight, 0, 1.0, "%.2f");
 
-  ImGui::SliderFloat("Avoidance Weight", &m_avoidance_weight, 0, 1.0, "%.2f");
-  ImGui::SliderFloat("Cohesion Weight", &m_cohesion_weight, 0, 1.0, "%.2f");
-  ImGui::SliderFloat("Alignment Weight", &m_alignment_weight, 0, 1.0, "%.2f");
+  ImGui::Text("Cohesion Weight");
+  ImGui::SliderFloat("##Cohesion Weight", &m_cohesion_weight, 0, 1.0, "%.2f");
 
-  ImGui::SliderFloat("Min Speed", &m_min_speed, 0, 10.0, "%.0f");
-  ImGui::SliderFloat("Max Speed", &m_max_speed, 1, 10.0, "%.0f");
+  ImGui::Text("Alignment Weight");
+  ImGui::SliderFloat("##Alignment Weight", &m_alignment_weight, 0, 1.0, "%.2f");
 
-  ImGui::SliderFloat("Boid Neighbour Radius", &m_boid_radius, 0, 10.0, "%.2f");
-  ImGui::SliderFloat("Soft Bound", &m_soft_bound, 0, 10.0, "%.2f");
-  ImGui::SliderFloat("Soft Bound Weight", &m_soft_bound_weight, 0, 1.0, "%.2f");
+  ImGui::Text("Min Speed");
+  ImGui::SliderFloat("##Min Speed", &m_min_speed, 0, 10.0, "%.0f");
+
+  ImGui::Text("Max Speed");
+  ImGui::SliderFloat("##Max Speed", &m_max_speed, 1, 10.0, "%.0f");
+
+  ImGui::Text("Boid Neighbour Radius");
+  ImGui::SliderFloat("##Boid Neighbour Radius", &m_boid_radius, 0, 10.0,
+                     "%.2f");
+
+  ImGui::Text("Soft Bound");
+  ImGui::SliderFloat("##Soft Bound", &m_soft_bound, 0, 10.0, "%.2f");
+
+  ImGui::Text("Soft Bound Weight");
+  ImGui::SliderFloat("##Soft Bound Weight", &m_soft_bound_weight, 0, 1.0,
+                     "%.2f");
+
   ImGui::Checkbox("Bounce", &m_bounce);
   ImGui::Checkbox("Wrap", &m_wrap);
 
   ImGui::Separator();
   ImGui::Text("Completion");
 
-  ImGui::SliderInt("Number of Flocks", &m_num_flocks, 0, 10);
-  ImGui::SliderInt("Boids per Flock", &m_num_boids_per_flock, 0, 300);
-  ImGui::SliderInt("Number of Predators", &m_num_predators, 0, 10);
+  // Flock settings
+  ImGui::Text("Number of Flocks");
+  ImGui::SliderInt("##Number of Flocks", &m_num_flocks, 0, 10);
 
-  ImGui::SliderFloat("Predator Avoidance Weight", &m_predator_avoidance_weight,
-                     0, 1.0, "%.2f");
+  ImGui::Text("Boids per Flock");
+  ImGui::SliderInt("##Boids per Flock", &m_num_boids_per_flock, 0, 300);
 
-  ImGui::SliderFloat("Predator Chase Weight", &m_predator_chase_weight, 0, 1.0,
-                     "%.2f");
+  // Predator settings
+  ImGui::Text("Number of Predators");
+  ImGui::SliderInt("##Number of Predators", &m_num_predators, 0, 10);
+
+  ImGui::Text("Predator Avoidance Weight");
+  ImGui::SliderFloat("##Predator Avoidance Weight",
+                     &m_predator_avoidance_weight, 0, 1.0, "%.2f");
+
+  ImGui::Text("Predator Chase Weight");
+  ImGui::SliderFloat("##Predator Chase Weight", &m_predator_chase_weight, 0,
+                     1.0, "%.2f");
 
   ImGui::Separator();
   ImGui::Text("Challenge");
 
-  ImGui::SliderInt("Number of Obstacles", &m_num_obstacles, 0, 10);
-  ImGui::SliderFloat("Obstacle Radius", &m_obstacle_radius, 0, 10.0, "%.2f");
+  // Obstacle settings
+  ImGui::Text("Number of Obstacles");
+  ImGui::SliderInt("##Number of Obstacles", &m_num_obstacles, 0, 10);
+
+  ImGui::Text("Obstacle Radius");
+  ImGui::SliderFloat("##Obstacle Radius", &m_obstacle_radius, 0, 10.0, "%.2f");
+
+  ImGui::Text("Obstacle Avoidance Weight");
+  ImGui::SliderFloat("##Obstacle Avoidance Weight",
+                     &m_obstacle_avoidance_weight, -5.0, 5.0, "%.2f");
+
+  ImGui::PopStyleVar(); // Pop frame padding style
+  ImGui::PopStyleVar(); // Pop item spacing style
 }

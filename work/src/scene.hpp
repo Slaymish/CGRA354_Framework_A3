@@ -34,24 +34,24 @@ private:
   bool m_wrap = false;
 
   int m_num_boids = 100;
-  int m_num_predators = 1;
-  int m_num_flocks = 3;
-  int m_num_boids_per_flock = 100;
+  int m_num_predators = 3;
+  int m_num_flocks = 2;
+  int m_num_boids_per_flock = 75;
 
   // Boid Weights
-  float m_avoidance_weight = 0.2f;
-  float m_cohesion_weight = 0.4f;
-  float m_alignment_weight = 0.5f;
+  float m_avoidance_weight = 0.8f;
+  float m_cohesion_weight = 0.7f;
+  float m_alignment_weight = 0.6f;
   float m_min_speed = 1.0f;
-  float m_max_speed = 5.0f;
-  float m_soft_bound = 0.1f;
-  float m_soft_bound_weight = 0.5f;
+  float m_max_speed = 7.0f;
+  float m_soft_bound = 0.0f;
+  float m_soft_bound_weight = 0.15f;
 
   // Predator Weights
-  float m_predator_avoidance_weight = 0.0f;
-  float m_predator_chase_weight = 0.0f;
+  float m_predator_avoidance_weight = 1.0f;
+  float m_predator_chase_weight = 1.0f;
 
-  float m_boid_radius = 5.0f;
+  float m_boid_radius = 5.5f;
 
   // scene data
   glm::vec3 m_bound_hsize = glm::vec3(20);
@@ -59,8 +59,9 @@ private:
   std::vector<Obstacle> m_obstacles;
 
   // obstacle data
-  int m_num_obstacles = 10;
-  float m_obstacle_radius = 2.0f;
+  int m_num_obstacles = 3;
+  float m_obstacle_radius = 4.0f;
+  float m_obstacle_avoidance_weight = 1.5f;
 
   //-------------------------------------------------------------
   // [Assignment 3] :
@@ -107,6 +108,7 @@ public:
   float softBoundWeight() const { return m_soft_bound_weight; }
   float predatorAvoidanceWeight() const { return m_predator_avoidance_weight; }
   float predatorChaseWeight() const { return m_predator_chase_weight; }
+  float obstacleAvoidanceWeight() const { return m_obstacle_avoidance_weight; }
   bool bounce() const { return m_bounce; }
   bool wrap() const { return m_wrap; }
   // In scene.hpp, add the drawObstacles declaration:
