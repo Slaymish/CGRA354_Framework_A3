@@ -18,6 +18,7 @@
 #include "cgra/cgra_geometry.hpp"
 #include "cgra/cgra_image.hpp"
 #include "cgra/cgra_wavefront.hpp"
+#include "obstacle.hpp"
 #include "scene.hpp"
 
 using namespace glm;
@@ -82,12 +83,11 @@ void Scene::loadCore() {
   // ...
 
   // CLear all related data
-  int numOfBoids = 300;
   m_boids.clear();
 
-  for (int i = 0; i <= numOfBoids; i++) {
+  for (int i = 0; i <= m_num_boids; i++) {
     m_boids.push_back(
-        Boid(linearRand(-m_bound_hsize, m_bound_hsize), sphericalRand(1.0)));
+        Boid(linearRand(-m_bound_hsize, m_bound_hsize), sphericalRand(1.0), 0));
   }
 }
 
@@ -99,8 +99,19 @@ void Scene::loadCompletion() {
   // bound size. Additionally include at least one Predator.
   //-------------------------------------------------------------
 
-  // YOUR CODE GOES HERE
-  // ...
+  m_boids.clear();
+
+  for (int i = 0; i < m_num_flocks; i++) {
+    for (int j = 0; j < m_num_boids_per_flock; j++) {
+      m_boids.push_back(Boid(linearRand(-m_bound_hsize, m_bound_hsize),
+                             sphericalRand(1.0), i));
+    }
+  }
+
+  for (int i = 0; i < m_num_predators; i++) {
+    m_boids.push_back(Boid(linearRand(-m_bound_hsize, m_bound_hsize),
+                           sphericalRand(1.0), -1));
+  }
 }
 
 void Scene::loadChallenge() {
@@ -112,7 +123,16 @@ void Scene::loadChallenge() {
   //-------------------------------------------------------------
 
   // YOUR CODE GOES HERE
-  // ...
+
+  m_obstacles.push_back(Obstacle(glm::vec3(0, 0, 0), 5));
+  m_obstacles.push_back(Obstacle(glm::vec3(0, 0, 20), 5));
+
+  m_boids.clear();
+
+  for (int i = 0; i <= m_num_boids; i++) {
+    m_boids.push_back(
+        Boid(linearRand(-m_bound_hsize, m_bound_hsize), sphericalRand(1.0), 0));
+  }
 }
 
 void Scene::update(float timestep) {
@@ -221,6 +241,31 @@ void Scene::draw(const mat4 &proj, const mat4 &view) {
     // draw
     m_simple_boid_mesh.draw();
   }
+
+  // draw obstacles
+  //
+
+  if (m_obstacles.size() > 0) {
+    drawObstacles(proj, view);
+  }
+}
+
+void Scene::drawObstacles(const mat4 &proj, const mat4 &view) {
+  for (const Obstacle &o : m_obstacles) {
+    mat4 model(1);
+    model = translate(mat4(1), o.position()) * model;
+    mat4 modelview = view * model;
+
+    glUseProgram(m_color_shader);
+    glUniformMatrix4fv(
+        glGetUniformLocation(m_color_shader, "uProjectionMatrix"), 1, false,
+        value_ptr(proj));
+
+    glUniformMatrix4fv(glGetUniformLocation(m_color_shader, "uModelViewMatrix"),
+                       1, false, value_ptr(modelview));
+
+    m_sphere_mesh.draw();
+  }
 }
 
 void Scene::renderGUI() {
@@ -266,6 +311,10 @@ void Scene::renderGUI() {
   ImGui::SliderFloat3("Bound hsize", value_ptr(m_bound_hsize), 0, 100.0,
                       "%.0f");
 
+  ImGui::Text("Core");
+
+  ImGui::SliderInt("Number of Boids", &m_num_boids, 0, 300);
+
   ImGui::SliderFloat("Avoidance Weight", &m_avoidance_weight, 0, 1.0, "%.2f");
   ImGui::SliderFloat("Cohesion Weight", &m_cohesion_weight, 0, 1.0, "%.2f");
   ImGui::SliderFloat("Alignment Weight", &m_alignment_weight, 0, 1.0, "%.2f");
@@ -275,6 +324,23 @@ void Scene::renderGUI() {
 
   ImGui::SliderFloat("Boid Neighbour Radius", &m_boid_radius, 0, 10.0, "%.2f");
   ImGui::SliderFloat("Soft Bound", &m_soft_bound, 0, 10.0, "%.2f");
+  ImGui::SliderFloat("Soft Bound Weight", &m_soft_bound_weight, 0, 1.0, "%.2f");
   ImGui::Checkbox("Bounce", &m_bounce);
   ImGui::Checkbox("Wrap", &m_wrap);
+
+  ImGui::Separator();
+  ImGui::Text("Completion");
+
+  ImGui::SliderInt("Number of Flocks", &m_num_flocks, 0, 10);
+  ImGui::SliderInt("Boids per Flock", &m_num_boids_per_flock, 0, 300);
+  ImGui::SliderInt("Number of Predators", &m_num_predators, 0, 10);
+
+  ImGui::SliderFloat("Predator Avoidance Weight", &m_predator_avoidance_weight,
+                     0, 1.0, "%.2f");
+
+  ImGui::SliderFloat("Predator Chase Weight", &m_predator_chase_weight, 0, 1.0,
+                     "%.2f");
+
+  ImGui::Separator();
+  ImGui::Text("Challenge");
 }
